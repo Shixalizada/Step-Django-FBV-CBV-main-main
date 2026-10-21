@@ -1,0 +1,57 @@
+From 97eb876f33aeb55b7884705ede05620176e926e7 Mon Sep 17 00:00:00 2001
+From: Local submission <local-submission@example.invalid>
+Date: Sun, 4 Oct 2026 22:40:48 +0000
+Subject: [PATCH 4/8] =?UTF-8?q?d=C3=BCym=C9=99l=C9=99r=20v=C9=99=20aktiv?=
+ =?UTF-8?q?=20link?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ blog/test_lesson11.py | 12 ++++++++++++
+ blog/views.py         |  2 ++
+ 2 files changed, 14 insertions(+)
+
+diff --git a/blog/test_lesson11.py b/blog/test_lesson11.py
+index 9364c09..4eafd45 100644
+--- a/blog/test_lesson11.py
++++ b/blog/test_lesson11.py
+@@ -54,3 +54,15 @@ class Lesson11HomeworkTests(TestCase):
+             self.assertIn("title", form.errors)
+         self.assertTrue(PostForm(data={**data, "title": "Salam dünya"}).is_valid())
+ 
++    def test_buttons_navbar_and_form_titles(self):
++        self.login()
++        response = self.client.get(reverse("blog:post_detail", args=[2]))
++        self.assertContains(response, "Redaktə et")
++        self.assertContains(response, 'href="/post/2/delete/"')
++        new = self.client.get(reverse("blog:post_create"))
++        self.assertContains(new, "Yeni post")
++        self.assertContains(new, 'class="active">+ Yeni post')
++        self.assertContains(self.client.get(reverse("blog:post_edit", args=[2])), "Postu redaktə et")
++        self.client.logout()
++        self.assertNotContains(self.client.get(reverse("blog:post_detail", args=[2])), "Redaktə et")
++
+diff --git a/blog/views.py b/blog/views.py
+index 5fa23e6..c70de20 100644
+--- a/blog/views.py
++++ b/blog/views.py
+@@ -94,6 +94,7 @@ def post_detail(request, post_id):                                # [DƏRS 9]
+ 
+ 
+ class PostCreateView(LoginRequiredMixin, CreateView):             # [DƏRS 12] CBV
++    extra_context = {"page_title": "Yeni post"}
+     model = Post
+     form_class = PostForm
+     template_name = "blog/post_form.html"
+@@ -142,6 +143,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):             # [DƏRS 12] C
+ 
+ 
+ class PostEditView(LoginRequiredMixin, UpdateView):             # [DƏRS 12] CBV
++    extra_context = {"page_title": "Postu redaktə et"}
+     pk_url_kwarg = "post_id"                                 # URL-də <int:post_id>
+     model = Post
+     form_class = PostForm
+-- 
+2.47.3
+

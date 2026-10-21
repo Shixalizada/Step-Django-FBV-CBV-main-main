@@ -1,0 +1,36 @@
+From 36d1dece320d09cb3f6fa5c1d79bb162b65c0381 Mon Sep 17 00:00:00 2001
+From: Local submission <local-submission@example.invalid>
+Date: Sun, 4 Oct 2026 22:40:48 +0000
+Subject: [PATCH 2/8] ContactForm
+
+---
+ blog/test_lesson11.py | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/blog/test_lesson11.py b/blog/test_lesson11.py
+index 53c7e19..ae9022b 100644
+--- a/blog/test_lesson11.py
++++ b/blog/test_lesson11.py
+@@ -30,3 +30,19 @@ class Lesson11HomeworkTests(TestCase):
+         self.assertFalse(Post.objects.filter(pk=2).exists())
+         self.assertContains(response, "Post silindi")
+ 
++    def test_contact_validation_saving_and_prg(self):
++        url = reverse("blog:contact")
++        bad = self.client.post(url, {"name": "Ali", "email": "yanlis", "message": "qısa"})
++        self.assertEqual(bad.status_code, 200)
++        self.assertTrue(bad.context["form"].errors)
++        self.assertEqual(ContactMessage.objects.count(), 0)
++        good = self.client.post(url, {"name": "Ali", "email": "ali@example.org", "message": "Bu kifayət qədər uzun mesajdır."})
++        self.assertRedirects(good, url)
++        self.assertEqual(ContactMessage.objects.count(), 1)
++        self.client.get(url)  # F5 təkrarlanan POST yaratmır
++        self.assertEqual(ContactMessage.objects.count(), 1)
++        self.assertEqual(ContactMessage.objects.first().email, "ali@example.org")
++        User.objects.create_superuser("testadmin", "admin@example.org", "Sifrə-123456")
++        self.assertTrue(self.client.login(username="testadmin", password="Sifrə-123456"))
++        self.assertEqual(self.client.get(reverse("admin:blog_contactmessage_changelist")).status_code, 200)
++
+-- 
+2.47.3
+

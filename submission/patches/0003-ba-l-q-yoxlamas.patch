@@ -1,0 +1,31 @@
+From fd757ee9a94874ff8c4d07c9157207150c2c419b Mon Sep 17 00:00:00 2001
+From: Local submission <local-submission@example.invalid>
+Date: Sun, 4 Oct 2026 22:40:48 +0000
+Subject: [PATCH 3/8] =?UTF-8?q?ba=C5=9Fl=C4=B1q=20yoxlamas=C4=B1?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ blog/test_lesson11.py | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/blog/test_lesson11.py b/blog/test_lesson11.py
+index ae9022b..9364c09 100644
+--- a/blog/test_lesson11.py
++++ b/blog/test_lesson11.py
+@@ -46,3 +46,11 @@ class Lesson11HomeworkTests(TestCase):
+         self.assertTrue(self.client.login(username="testadmin", password="Sifrə-123456"))
+         self.assertEqual(self.client.get(reverse("admin:blog_contactmessage_changelist")).status_code, 200)
+ 
++    def test_title_validation(self):
++        data = {"category": 1, "content": "Kifayət qədər mətn var."}
++        for title in ("abc", "SALAM"):
++            form = PostForm(data={**data, "title": title})
++            self.assertFalse(form.is_valid())
++            self.assertIn("title", form.errors)
++        self.assertTrue(PostForm(data={**data, "title": "Salam dünya"}).is_valid())
++
+-- 
+2.47.3
+

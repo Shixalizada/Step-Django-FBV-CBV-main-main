@@ -1,0 +1,199 @@
+From 0868069ebb70d7d9482dec217c3fb5ce2c973f60 Mon Sep 17 00:00:00 2001
+From: Local submission <local-submission@example.invalid>
+Date: Sun, 4 Oct 2026 22:40:48 +0000
+Subject: [PATCH 7/8] =?UTF-8?q?qada=C4=9Fan=20olunmu=C5=9F=20ad=20v=C9=99?=
+ =?UTF-8?q?=20migration?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ blog/forms.py                          | 21 +++++++++++++++++----
+ blog/migrations/0013_comment_name.py   | 13 +++++++++++++
+ blog/models.py                         |  1 +
+ blog/templates/blog/comment_reply.html |  2 +-
+ blog/templates/blog/post_detail.html   |  4 ++--
+ blog/test_lesson11.py                  | 22 ++++++++++++++++++++++
+ blog/views.py                          |  8 ++++----
+ 7 files changed, 60 insertions(+), 11 deletions(-)
+ create mode 100644 blog/migrations/0013_comment_name.py
+
+diff --git a/blog/forms.py b/blog/forms.py
+index 1e1a9f9..fb1687c 100644
+--- a/blog/forms.py
++++ b/blog/forms.py
+@@ -8,11 +8,26 @@ from .models import Post, Comment, Category
+ 
+ # [DƏRS 11] ModelForm — sahələri Comment modelindən özü götürür
+ class CommentForm(forms.ModelForm):
++    # Dərs 12-dəki real hesab qalır; istəyə görə görünən ad ayrıca göstərilir.
++    name = forms.CharField(max_length=50, required=False, label="Görünən ad (istəyə görə)")
++
+     class Meta:
+-        model = Comment                                           # hansı model üçün
+-        fields = ["text"]                                         # [EV 12] tapşırıq 1 — "name" getdi: müəllifi view yazır
++        model = Comment
++        fields = ["name", "text"]
+         labels = {"text": "Şərhin"}
+ 
++    def __init__(self, *args, user=None, **kwargs):
++        super().__init__(*args, **kwargs)
++        self.user = user
++
++    def clean_name(self):
++        name = self.cleaned_data["name"].strip()
++        if not name and self.user is not None and self.user.is_authenticated:
++            name = self.user.username
++        if name.lower() == "admin":
++            raise forms.ValidationError("admin adı ilə şərh yazmaq olmaz.")
++        return name
++
+     # [DƏRS 11] öz yoxlama qaydamız: clean_<sahə adı>. Django bunu is_valid() zamanı özü çağırır
+     def clean_text(self):
+         text = self.cleaned_data["text"]                          # bu sahənin təmizlənmiş dəyəri
+@@ -20,8 +35,6 @@ class CommentForm(forms.ModelForm):
+             raise forms.ValidationError("Şərh ən azı 5 simvol olmalıdır.")
+         return text                                               # HƏMİŞƏ dəyəri qaytar
+ 
+-    # [EV 11]-dəki clean_name silindi — name sahəsi artıq yoxdur ([EV 12] tapşırıq 1)
+-
+ 
+ # [DƏRS 11] post yaratmaq və redaktə etmək üçün — eyni form hər ikisinə yarayır
+ class PostForm(forms.ModelForm):
+diff --git a/blog/migrations/0013_comment_name.py b/blog/migrations/0013_comment_name.py
+new file mode 100644
+index 0000000..e024265
+--- /dev/null
++++ b/blog/migrations/0013_comment_name.py
+@@ -0,0 +1,13 @@
++from django.db import migrations, models
++
++
++class Migration(migrations.Migration):
++    dependencies = [("blog", "0012_remove_comment_name_comment_author")]
++
++    operations = [
++        migrations.AddField(
++            model_name="comment",
++            name="name",
++            field=models.CharField(blank=True, default="", max_length=50),
++        ),
++    ]
+diff --git a/blog/models.py b/blog/models.py
+index 8361da3..5278058 100644
+--- a/blog/models.py
++++ b/blog/models.py
+@@ -96,6 +96,7 @@ class Comment(models.Model):
+         blank=True,
+         related_name="comments",
+     )
++    name = models.CharField(max_length=50, blank=True, default="")  # [EV 11] görünən ad (hesab müəllifi də saxlanır)
+     text = models.TextField()
+     created_at = models.DateTimeField(auto_now_add=True)
+ 
+diff --git a/blog/templates/blog/comment_reply.html b/blog/templates/blog/comment_reply.html
+index df280e7..64d68ec 100644
+--- a/blog/templates/blog/comment_reply.html
++++ b/blog/templates/blog/comment_reply.html
+@@ -7,7 +7,7 @@
+   <h1>Cavab yaz</h1>
+ 
+   <div class="comment">
+-    <p class="meta"><b>{{ parent.author.username|default:"qonaq" }}</b> yazıb:</p>
++    <p class="meta"><b>{{ parent.name|default:parent.author.username|default:"qonaq" }}</b> yazıb:</p>
+     <p>{{ parent.text }}</p>
+   </div>
+ 
+diff --git a/blog/templates/blog/post_detail.html b/blog/templates/blog/post_detail.html
+index 2d30af0..9650460 100644
+--- a/blog/templates/blog/post_detail.html
++++ b/blog/templates/blog/post_detail.html
+@@ -42,13 +42,13 @@
+     <h2>Şərhlər <small>({{ comments|length }})</small></h2>
+     {% for comment in comments %}
+       <div class="comment">
+-        <p class="meta"><b>{{ comment.author.username|default:"qonaq" }}</b> · {{ comment.created_at|date:"d.m.Y H:i" }}</p>
++        <p class="meta"><b>{{ comment.name|default:comment.author.username|default:"qonaq" }}</b> · {{ comment.created_at|date:"d.m.Y H:i" }}</p>
+         <p>{{ comment.text }}</p>
+ 
+         {# [PRAKTİKA 11] bu şərhin cavabları + cavab linki #}
+         {% for reply in comment.replies.all %}
+           <div class="comment reply">
+-            <p class="meta"><b>{{ reply.author.username|default:"qonaq" }}</b> · {{ reply.created_at|date:"d.m.Y H:i" }}</p>
++            <p class="meta"><b>{{ reply.name|default:reply.author.username|default:"qonaq" }}</b> · {{ reply.created_at|date:"d.m.Y H:i" }}</p>
+             <p>{{ reply.text }}</p>
+           </div>
+         {% endfor %}
+diff --git a/blog/test_lesson11.py b/blog/test_lesson11.py
+index 4e96f43..c3125a7 100644
+--- a/blog/test_lesson11.py
++++ b/blog/test_lesson11.py
+@@ -88,3 +88,25 @@ class Lesson11HomeworkTests(TestCase):
+         self.assertTrue(Category.objects.filter(slug="elm").exists())
+         self.assertContains(self.client.get(reverse("blog:category_list")), "Elm")
+ 
++    def test_forbidden_comment_name_case_insensitive(self):
++        self.login("aysel")
++        url = reverse("blog:post_detail", args=[3])
++        count = Comment.objects.count()
++        for name in ("admin", "Admin", "ADMIN", "  aDmIn  "):
++            response = self.client.post(url, {"name": name, "text": "Maraqlı mövzudur"})
++            self.assertEqual(response.status_code, 200)
++            self.assertContains(response, "admin adı ilə şərh yazmaq olmaz")
++            self.assertEqual(Comment.objects.count(), count)
++        response = self.client.post(url, {"name": "Aysu", "text": "Maraqlı mövzudur"})
++        self.assertRedirects(response, url)
++        comment = Comment.objects.get(name="Aysu")
++        self.assertEqual(comment.author.username, "aysel")
++        self.assertContains(self.client.get(url), "Aysu")
++
++    def test_reply_form_rejects_admin_name(self):
++        self.login("aysel")
++        url = reverse("blog:comment_reply", args=[1])
++        response = self.client.post(url, {"name": "ADMIN", "text": "Cavab mətni"})
++        self.assertEqual(response.status_code, 200)
++        self.assertContains(response, "admin adı ilə şərh yazmaq olmaz")
++
+diff --git a/blog/views.py b/blog/views.py
+index c70de20..db1c26b 100644
+--- a/blog/views.py
++++ b/blog/views.py
+@@ -50,7 +50,7 @@ def post_detail(request, post_id):                                # [DƏRS 9]
+     if request.method == "POST":
+         if not request.user.is_authenticated:                     # [EV 12] tapşırıq 1 — şərhi yalnız giriş edən yazır
+             return redirect("accounts:login")
+-        form = CommentForm(request.POST)                          # formu gələn məlumatla doldur
++        form = CommentForm(request.POST, user=request.user)          # ad yoxlaması + hesab məlumatı
+         if form.is_valid():                                       # bütün yoxlamalar keçdi?
+             comment = form.save(commit=False)                     # obyekt yarat, amma bazaya HƏLƏ yazma
+             comment.post = post                                   # formda olmayan sahəni özümüz doldururuq
+@@ -59,7 +59,7 @@ def post_detail(request, post_id):                                # [DƏRS 9]
+             messages.success(request, "Şərhin əlavə olundu.")
+             return redirect(post)                                 # POST-dan sonra HƏMİŞƏ redirect
+     else:
+-        form = CommentForm()                                      # GET → boş form
++        form = CommentForm(user=request.user)                    # GET → boş form
+ 
+     # [EV 9] baxış sayı
+     post.views += 1
+@@ -189,7 +189,7 @@ def my_posts(request):
+ def comment_reply(request, comment_id):                           # [PRAKTİKA 11]
+     parent = get_object_or_404(Comment, id=comment_id, is_active=True)
+     if request.method == "POST":
+-        form = CommentForm(request.POST)
++        form = CommentForm(request.POST, user=request.user)
+         if form.is_valid():
+             reply = form.save(commit=False)
+             reply.post = parent.post                              # cavab da eyni posta aiddir
+@@ -199,7 +199,7 @@ def comment_reply(request, comment_id):                           # [PRAKTİKA 1
+             messages.success(request, "Cavabın əlavə olundu.")
+             return redirect(parent.post)
+     else:
+-        form = CommentForm()
++        form = CommentForm(user=request.user)
+     context = {"form": form, "parent": parent}
+     return render(request, "blog/comment_reply.html", context)
+ 
+-- 
+2.47.3
+

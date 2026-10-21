@@ -1,0 +1,49 @@
+From 8083802580b52b337b6f4ef7a013bdb382e4f982 Mon Sep 17 00:00:00 2001
+From: Local submission <local-submission@example.invalid>
+Date: Sun, 4 Oct 2026 22:40:48 +0000
+Subject: [PATCH 5/8] =?UTF-8?q?=C3=BC=C3=A7=20r=C9=99ngd=C9=99=20mesaj?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ blog/test_lesson11.py | 13 +++++++++++++
+ static/css/style.css  |  1 +
+ 2 files changed, 14 insertions(+)
+
+diff --git a/blog/test_lesson11.py b/blog/test_lesson11.py
+index 4eafd45..6086a60 100644
+--- a/blog/test_lesson11.py
++++ b/blog/test_lesson11.py
+@@ -66,3 +66,16 @@ class Lesson11HomeworkTests(TestCase):
+         self.client.logout()
+         self.assertNotContains(self.client.get(reverse("blog:post_detail", args=[2])), "Redaktə et")
+ 
++    def test_create_edit_delete_message_levels(self):
++        self.login()
++        payload = {"title": "Yeni mövzu başlığı", "category": 1, "content": "Mətn", "is_published": "on"}
++        response = self.client.post(reverse("blog:post_create"), payload, follow=True)
++        self.assertIn("Post yaradıldı.", [str(m) for m in response.context["messages"]])
++        self.assertIn(messages.SUCCESS, [m.level for m in response.context["messages"]])
++        post = Post.objects.get(title=payload["title"])
++        payload["title"] = "Dəyişilmiş mövzu başlığı"
++        response = self.client.post(reverse("blog:post_edit", args=[post.pk]), payload, follow=True)
++        self.assertIn(messages.INFO, [m.level for m in response.context["messages"]])
++        response = self.client.post(reverse("blog:post_delete", args=[post.pk]), follow=True)
++        self.assertIn(messages.WARNING, [m.level for m in response.context["messages"]])
++
+diff --git a/static/css/style.css b/static/css/style.css
+index c18c159..088d170 100644
+--- a/static/css/style.css
++++ b/static/css/style.css
+@@ -147,6 +147,7 @@ h2 small { color: var(--muted); font-weight: 500; font-size: 16px; }
+ .messages { list-style: none; padding: 0; margin: 0 0 20px; }
+ .messages li { padding: 12px 16px; border-radius: 10px; margin-bottom: 8px; font-weight: 600; background: #e7f0fe; color: #174ea6; }
+ .messages li.success { background: #e6f4ea; color: #137333; }
++.messages li.info { background: #e7f0fe; color: #174ea6; }
+ .messages li.error { background: #fdecea; color: #b3261e; }
+ .messages li.warning { background: #fef7e0; color: #8a6100; }
+ 
+-- 
+2.47.3
+

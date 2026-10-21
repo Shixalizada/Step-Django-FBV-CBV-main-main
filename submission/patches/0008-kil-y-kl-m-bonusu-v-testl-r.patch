@@ -1,0 +1,43 @@
+From ad37be40874761ac9ef1dc0060e15797f3bfab07 Mon Sep 17 00:00:00 2001
+From: Local submission <local-submission@example.invalid>
+Date: Sun, 4 Oct 2026 22:40:48 +0000
+Subject: [PATCH 8/8] =?UTF-8?q?=C5=9F=C9=99kil=20y=C3=BCkl=C9=99m=C9=99=20?=
+ =?UTF-8?q?bonusu=20v=C9=99=20testl=C9=99r?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ blog/test_lesson11.py | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/blog/test_lesson11.py b/blog/test_lesson11.py
+index c3125a7..ad65f4a 100644
+--- a/blog/test_lesson11.py
++++ b/blog/test_lesson11.py
+@@ -110,3 +110,22 @@ class Lesson11HomeworkTests(TestCase):
+         self.assertEqual(response.status_code, 200)
+         self.assertContains(response, "admin adı ilə şərh yazmaq olmaz")
+ 
++    def test_image_upload_create_and_edit(self):
++        # CBV CreateView / UpdateView request.FILES-i avtomatik formaya ötürür.
++        self.login()
++        gif = (b"GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00"
++               b"!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;")
++        with TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
++            create_data = {"title": "Şəkilli yeni mövzu", "category": 1, "content": "Mətn",
++                           "image": SimpleUploadedFile("ilk.gif", gif, content_type="image/gif")}
++            self.assertRedirects(self.client.post(reverse("blog:post_create"), create_data),
++                                 reverse("blog:post_detail", args=[Post.objects.latest("id").id]))
++            post = Post.objects.get(title="Şəkilli yeni mövzu")
++            self.assertTrue(post.image.name.startswith("posts/"))
++            update_data = {"title": "Şəkilli yenilənmiş mövzu", "category": 1, "content": "Mətn",
++                           "image": SimpleUploadedFile("ikinci.gif", gif, content_type="image/gif")}
++            self.assertRedirects(self.client.post(reverse("blog:post_edit", args=[post.pk]), update_data),
++                                 reverse("blog:post_detail", args=[post.pk]))
++            post.refresh_from_db()
++            self.assertIn("ikinci", post.image.name)
++
+-- 
+2.47.3
+

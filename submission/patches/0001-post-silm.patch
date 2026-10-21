@@ -1,0 +1,92 @@
+From fd29076a332fc68e43540def300c411fbb9eb2e4 Mon Sep 17 00:00:00 2001
+From: Local submission <local-submission@example.invalid>
+Date: Sun, 4 Oct 2026 22:40:48 +0000
+Subject: [PATCH 1/8] =?UTF-8?q?post=20silm=C9=99?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ blog/test_lesson11.py | 32 ++++++++++++++++++++++++++++++++
+ blog/views.py         |  5 ++++-
+ 2 files changed, 36 insertions(+), 1 deletion(-)
+ create mode 100644 blog/test_lesson11.py
+
+diff --git a/blog/test_lesson11.py b/blog/test_lesson11.py
+new file mode 100644
+index 0000000..53c7e19
+--- /dev/null
++++ b/blog/test_lesson11.py
+@@ -0,0 +1,32 @@
++"""Dərs 11 üçün testlər. İcra: python manage.py test blog.test_lesson11"""
++from django.contrib.auth.models import User
++from django.core.files.uploadedfile import SimpleUploadedFile
++from django.test import TestCase, override_settings
++from django.urls import reverse
++from django.contrib import messages
++from django.contrib.messages import get_messages
++from tempfile import TemporaryDirectory
++
++from .forms import CommentForm, ContactForm, PostForm
++from .models import Category, Comment, ContactMessage, Post
++
++
++class Lesson11HomeworkTests(TestCase):
++    fixtures = ["demo_full"]
++
++    def login(self, name="murad"):
++        self.assertTrue(self.client.login(username=name, password="step12345"))
++
++    def test_delete_needs_confirmation_and_post(self):
++        self.login()
++        address = reverse("blog:post_delete", args=[2])
++        response = self.client.get(address)
++        self.assertEqual(response.status_code, 200)
++        self.assertContains(response, "Bəli, sil")
++        self.assertContains(response, "Xeyr, qayıt")
++        self.assertTrue(Post.objects.filter(pk=2).exists())
++        response = self.client.post(address, follow=True)
++        self.assertRedirects(response, reverse("blog:post_list"))
++        self.assertFalse(Post.objects.filter(pk=2).exists())
++        self.assertContains(response, "Post silindi")
++
+diff --git a/blog/views.py b/blog/views.py
+index 6c26939..5fa23e6 100644
+--- a/blog/views.py
++++ b/blog/views.py
+@@ -4,6 +4,7 @@ from django.core.exceptions import PermissionDenied
+ from django.db.models import Count
+ from django.http import Http404
+ from django.shortcuts import render, redirect, get_object_or_404
++from django.urls import reverse
+ 
+ from .forms import CommentForm, PostForm, CategoryForm, ContactForm
+ from .models import Post, Category, Tag, Comment, ContactMessage
+@@ -141,6 +142,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):             # [DƏRS 12] C
+ 
+ 
+ class PostEditView(LoginRequiredMixin, UpdateView):             # [DƏRS 12] CBV
++    pk_url_kwarg = "post_id"                                 # URL-də <int:post_id>
+     model = Post
+     form_class = PostForm
+     template_name = "blog/post_form.html"
+@@ -158,6 +160,7 @@ class PostEditView(LoginRequiredMixin, UpdateView):             # [DƏRS 12] CBV
+ 
+ 
+ class PostDeleteView(LoginRequiredMixin, DeleteView):             # [DƏRS 12] CBV
++    pk_url_kwarg = "post_id"                                 # URL-də <int:post_id>
+     model = Post
+     template_name = "blog/post_confirm_delete.html"
+     context_object_name = "post"
+@@ -170,7 +173,7 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):             # [DƏRS 12] C
+ 
+     def get_success_url(self):
+         messages.warning(self.request, "Post silindi.")
+-        return redirect("blog:post_list").url
++        return reverse("blog:post_list")
+ 
+ 
+ @login_required                                                   # [PRAKTİKA 12] tapşırıq 2
+-- 
+2.47.3
+

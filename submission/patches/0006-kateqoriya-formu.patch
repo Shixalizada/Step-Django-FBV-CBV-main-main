@@ -1,0 +1,42 @@
+From a2401e9b65998e171ce2af2e2774bf8b6a2cb310 Mon Sep 17 00:00:00 2001
+From: Local submission <local-submission@example.invalid>
+Date: Sun, 4 Oct 2026 22:40:48 +0000
+Subject: [PATCH 6/8] kateqoriya formu
+
+---
+ blog/templates/blog/category_list.html | 1 +
+ blog/test_lesson11.py                  | 9 +++++++++
+ 2 files changed, 10 insertions(+)
+
+diff --git a/blog/templates/blog/category_list.html b/blog/templates/blog/category_list.html
+index b7970c5..68ba380 100644
+--- a/blog/templates/blog/category_list.html
++++ b/blog/templates/blog/category_list.html
+@@ -5,6 +5,7 @@
+ {% block content %}
+   {# [PRAKTİKA 8] #}
+   <h1>Kateqoriyalar</h1>
++  <p><a href="{% url 'blog:category_create' %}" class="btn">+ Yeni kateqoriya</a></p>
+ 
+   <ul class="list">
+     {% for category in categories %}
+diff --git a/blog/test_lesson11.py b/blog/test_lesson11.py
+index 6086a60..4e96f43 100644
+--- a/blog/test_lesson11.py
++++ b/blog/test_lesson11.py
+@@ -79,3 +79,12 @@ class Lesson11HomeworkTests(TestCase):
+         response = self.client.post(reverse("blog:post_delete", args=[post.pk]), follow=True)
+         self.assertIn(messages.WARNING, [m.level for m in response.context["messages"]])
+ 
++    def test_category_form_and_url_order(self):
++        address = reverse("blog:category_create")
++        self.assertEqual(address, "/category/new/")
++        self.assertEqual(self.client.get(address).status_code, 200)
++        response = self.client.post(address, {"name": "Elm", "slug": "elm", "description": "Elmi xəbərlər"})
++        self.assertRedirects(response, reverse("blog:category_list"))
++        self.assertTrue(Category.objects.filter(slug="elm").exists())
++        self.assertContains(self.client.get(reverse("blog:category_list")), "Elm")
++
+-- 
+2.47.3
+
